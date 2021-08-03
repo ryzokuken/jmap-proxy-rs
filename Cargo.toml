@@ -9,3 +9,4 @@ edition = "2018"
 libjmap = { git = "https://git.meli.delivery/meli/libjmap" }
 tide = "0.16.0"
 async-std = { version = "1.8.0", features = ["attributes"] }
+dirs = "3.0"
