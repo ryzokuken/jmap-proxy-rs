@@ -884,6 +884,8 @@ dependencies = [
  "async-std",
  "dirs",
  "libjmap",
+ "serde",
+ "serde_json",
  "tide",
 ]
 
