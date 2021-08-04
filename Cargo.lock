@@ -882,11 +882,13 @@ name = "jmap-proxy-rs"
 version = "0.1.0"
 dependencies = [
  "async-std",
+ "async-trait",
  "dirs",
  "libjmap",
  "serde",
  "serde_json",
  "tide",
+ "tide-http-auth",
 ]
 
 [[package]]
@@ -1497,6 +1499,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "tide-http-auth"
+version = "0.5.1-alpha.0"
+source = "git+https://github.com/ryzokuken/tide-http-auth#ea9e7a1acad101c47ccff0dff9c7efa1068ce0de"
+dependencies = [
+ "async-trait",
+ "base64 0.13.0",
+ "http-types",
+ "tide",
+ "tracing",
+]
+
+[[package]]
 name = "time"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1559,6 +1573,38 @@ name = "tinyvec_macros"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
+
+[[package]]
+name = "tracing"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09adeb8c97449311ccd28a427f96fb563e7fd31aabf994189879d9da2394b89d"
+dependencies = [
+ "cfg-if 1.0.0",
+ "pin-project-lite 0.2.7",
+ "tracing-attributes",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-attributes"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c42e6fa53307c8a17e4ccd4dc81cf5ec38db9209f59b222210375b54ee40d1e2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "tracing-core"
+version = "0.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9ff14f98b1a4b289c6248a023c1c2fa1491062964e9fed67ab29c4e4da4a052"
+dependencies = [
+ "lazy_static",
+]
 
 [[package]]
 name = "typenum"

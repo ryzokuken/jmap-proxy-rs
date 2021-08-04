@@ -1,10 +1,35 @@
 use serde::{Deserialize, Serialize};
+use tide_http_auth::{BasicAuthRequest, Storage};
+
+#[derive(Clone)]
+struct ServerAuthState {
+    username: String,
+    password: String
+}
+
+impl ServerAuthState {
+    fn new(username: String, password: String) -> Self {
+        ServerAuthState { username, password }
+    }
+}
+
+#[async_trait::async_trait]
+impl Storage<(), BasicAuthRequest> for ServerAuthState {
+    async fn get_user(&self, req: BasicAuthRequest) -> tide::Result<Option<()>> {
+        if req.username == self.username && req.password == self.password {
+            Ok(Some(()))
+        } else {
+            Ok(None)
+        }
+    }
+}
 
 #[async_std::main]
 async fn main() -> Result<(), std::io::Error> {
-    let config = read_config();
     tide::log::start();
-    let mut app = tide::new();
+    let config = read_config();
+    let mut app = tide::with_state(ServerAuthState::new(config.jmap.username, config.jmap.password));
+    app.with(tide_http_auth::Authentication::new(tide_http_auth::BasicAuthScheme::default()));
     app.at("/").get(root);
     app.listen("127.0.0.1:8080").await?;
     Ok(())
@@ -38,6 +63,6 @@ fn read_config() -> Config {
     serde_json::from_str(&config_str).unwrap()
 }
 
-async fn root(_req: tide::Request<()>) -> tide::Result<String> {
+async fn root<State>(_req: tide::Request<State>) -> tide::Result<String> {
     Ok(String::from("hello"))
 }
