@@ -924,7 +924,6 @@ checksum = "320cfe77175da3a483efed4bc0adc1968ca050b098ce4f2f1c13a56626128790"
 [[package]]
 name = "libjmap"
 version = "0.1.0"
-source = "git+https://git.meli.delivery/meli/libjmap#bf0a44fa9fec315f16bb0f4b199768db3be86a10"
 dependencies = [
  "serde",
  "serde_derive",

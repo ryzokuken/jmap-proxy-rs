@@ -1,0 +1,3 @@
+[submodule "libjmap"]
+	path = libjmap
+	url = git@meli.delivery:meli/libjmap.git
