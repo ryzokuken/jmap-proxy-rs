@@ -1,22 +1,23 @@
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+use serde::Deserialize;
 use tide_http_auth::{BasicAuthRequest, Storage};
 
 #[derive(Clone)]
-struct ServerAuthState {
-    username: String,
-    password: String
+struct State {
+    config: Config,
 }
 
-impl ServerAuthState {
-    fn new(username: String, password: String) -> Self {
-        ServerAuthState { username, password }
+impl State {
+    fn new(config: Config) -> Self {
+        Self { config }
     }
 }
 
 #[async_trait::async_trait]
-impl Storage<(), BasicAuthRequest> for ServerAuthState {
+impl Storage<(), BasicAuthRequest> for State {
     async fn get_user(&self, req: BasicAuthRequest) -> tide::Result<Option<()>> {
-        if req.username == self.username && req.password == self.password {
+        if req.username == self.config.jmap.username && req.password == self.config.jmap.password {
             Ok(Some(()))
         } else {
             Ok(None)
@@ -28,32 +29,35 @@ impl Storage<(), BasicAuthRequest> for ServerAuthState {
 async fn main() -> Result<(), std::io::Error> {
     tide::log::start();
     let config = read_config();
-    let mut app = tide::with_state(ServerAuthState::new(config.jmap.username, config.jmap.password));
-    app.with(tide_http_auth::Authentication::new(tide_http_auth::BasicAuthScheme::default()));
+    let mut app = tide::with_state(State::new(config));
+    app.with(tide_http_auth::Authentication::new(
+        tide_http_auth::BasicAuthScheme::default(),
+    ));
     app.at("/").get(root);
     app.listen("127.0.0.1:8080").await?;
     Ok(())
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Clone)]
 struct IMAPConfig {
     username: String,
     password: String,
+    email: String,
     host: String,
     port: u16,
-    tls: bool
+    tls: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Clone)]
 struct JMAPConfig {
     username: String,
-    password: String
+    password: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Clone)]
 struct Config {
     imap: IMAPConfig,
-    jmap: JMAPConfig
+    jmap: JMAPConfig,
 }
 
 fn read_config() -> Config {
@@ -63,6 +67,16 @@ fn read_config() -> Config {
     serde_json::from_str(&config_str).unwrap()
 }
 
-async fn root<State>(_req: tide::Request<State>) -> tide::Result<String> {
-    Ok(String::from("hello"))
+async fn root(req: tide::Request<State>) -> tide::Result<String> {
+    let email = req.state().config.imap.email.clone();
+    let account = libjmap::rfc8620::Account {
+        name: email,
+        is_personal: true,
+        is_read_only: true,
+        account_capabilities: HashMap::default(),
+        extra_properties: HashMap::default(),
+    };
+    let mut session = libjmap::rfc8620::JmapSession::default();
+    session.accounts.insert(libjmap::rfc8620::Id::new(), account);
+    Ok(serde_json::to_string(&session).unwrap())
 }
