@@ -1,4 +1,4 @@
-use libjmap::rfc8620::{Account, Id};
+use libjmap::rfc8620::{Account, Id, JmapSession};
 use tide_http_auth::{BasicAuthRequest, Storage};
 
 mod config;
@@ -65,11 +65,15 @@ async fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
-async fn root(req: tide::Request<State>) -> tide::Result<String> {
-    let state = req.state();
-    let mut session = libjmap::rfc8620::JmapSession::default();
+fn generate_session(state: &State) -> JmapSession {
+    let mut session = JmapSession::default();
     session
         .accounts
         .insert(state.account_id.clone(), state.account.clone());
+    session
+}
+
+async fn root(req: tide::Request<State>) -> tide::Result<String> {
+    let session = generate_session(req.state());
     Ok(serde_json::to_string(&session).unwrap())
 }
