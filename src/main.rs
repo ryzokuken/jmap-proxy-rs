@@ -1,13 +1,16 @@
 use libjmap::rfc8620::{Account, Id};
-use serde::Deserialize;
 use tide_http_auth::{BasicAuthRequest, Storage};
+
+mod config;
+
+use config::Config;
 
 #[derive(Clone)]
 struct State {
     config: Config,
     account: Account,
     account_id: Id<Account>,
-    address: String
+    address: String,
 }
 
 trait GenerateID {
@@ -29,7 +32,7 @@ impl State {
             config,
             account,
             account_id,
-            address
+            address,
         }
     }
 }
@@ -48,7 +51,7 @@ impl Storage<(), BasicAuthRequest> for State {
 #[async_std::main]
 async fn main() -> Result<(), std::io::Error> {
     tide::log::start();
-    let config = read_config();
+    let config = config::read_config();
     let jmap_config = config.jmap.clone();
     let host = jmap_config.host.unwrap_or_else(|| "127.0.0.1".to_string());
     let port = jmap_config.port.unwrap_or_else(|| 8080);
@@ -60,37 +63,6 @@ async fn main() -> Result<(), std::io::Error> {
     app.at("/").get(root);
     app.listen(&addr).await?;
     Ok(())
-}
-
-#[derive(Deserialize, Clone)]
-struct IMAPConfig {
-    username: String,
-    password: String,
-    email: String,
-    host: String,
-    port: u16,
-    tls: bool,
-}
-
-#[derive(Deserialize, Clone)]
-struct JMAPConfig {
-    username: String,
-    password: String,
-    host: Option<String>,
-    port: Option<u16>,
-}
-
-#[derive(Deserialize, Clone)]
-struct Config {
-    imap: IMAPConfig,
-    jmap: JMAPConfig,
-}
-
-fn read_config() -> Config {
-    let config_dir = dirs::config_dir().unwrap();
-    let config_path = config_dir.join("jmap-proxy/config.json");
-    let config_str = std::fs::read_to_string(config_path).unwrap();
-    serde_json::from_str(&config_str).unwrap()
 }
 
 async fn root(req: tide::Request<State>) -> tide::Result<String> {
