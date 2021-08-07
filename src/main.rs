@@ -1,16 +1,34 @@
-use std::collections::HashMap;
-
+use libjmap::rfc8620::{Account, Id};
 use serde::Deserialize;
 use tide_http_auth::{BasicAuthRequest, Storage};
 
 #[derive(Clone)]
 struct State {
     config: Config,
+    account: Account,
+    account_id: Id<Account>,
+}
+
+trait GenerateID {
+    fn generate_id<T>() -> Id<T>;
+}
+
+impl GenerateID for Account {
+    fn generate_id<T>() -> Id<T> {
+        let id = uuid::Uuid::new_v4().to_string();
+        Id::from(String::from('A') + &id)
+    }
 }
 
 impl State {
     fn new(config: Config) -> Self {
-        Self { config }
+        let account = Account::new(config.imap.email.clone(), true, true, None);
+        let account_id = Account::generate_id();
+        Self {
+            config,
+            account,
+            account_id,
+        }
     }
 }
 
@@ -68,15 +86,10 @@ fn read_config() -> Config {
 }
 
 async fn root(req: tide::Request<State>) -> tide::Result<String> {
-    let email = req.state().config.imap.email.clone();
-    let account = libjmap::rfc8620::Account {
-        name: email,
-        is_personal: true,
-        is_read_only: true,
-        account_capabilities: HashMap::default(),
-        extra_properties: HashMap::default(),
-    };
+    let state = req.state();
     let mut session = libjmap::rfc8620::JmapSession::default();
-    session.accounts.insert(libjmap::rfc8620::Id::new(), account);
+    session
+        .accounts
+        .insert(state.account_id.clone(), state.account.clone());
     Ok(serde_json::to_string(&session).unwrap())
 }
