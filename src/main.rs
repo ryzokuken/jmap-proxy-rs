@@ -7,6 +7,7 @@ struct State {
     config: Config,
     account: Account,
     account_id: Id<Account>,
+    address: String
 }
 
 trait GenerateID {
@@ -21,13 +22,14 @@ impl GenerateID for Account {
 }
 
 impl State {
-    fn new(config: Config) -> Self {
+    fn new(config: Config, address: String) -> Self {
         let account = Account::new(config.imap.email.clone(), true, true, None);
         let account_id = Account::generate_id();
         Self {
             config,
             account,
             account_id,
+            address
         }
     }
 }
@@ -47,12 +49,16 @@ impl Storage<(), BasicAuthRequest> for State {
 async fn main() -> Result<(), std::io::Error> {
     tide::log::start();
     let config = read_config();
-    let mut app = tide::with_state(State::new(config));
+    let jmap_config = config.jmap.clone();
+    let host = jmap_config.host.unwrap_or_else(|| "127.0.0.1".to_string());
+    let port = jmap_config.port.unwrap_or_else(|| 8080);
+    let addr = format!("{}:{}", host, port);
+    let mut app = tide::with_state(State::new(config, addr.clone()));
     app.with(tide_http_auth::Authentication::new(
         tide_http_auth::BasicAuthScheme::default(),
     ));
     app.at("/").get(root);
-    app.listen("127.0.0.1:8080").await?;
+    app.listen(&addr).await?;
     Ok(())
 }
 
@@ -70,6 +76,8 @@ struct IMAPConfig {
 struct JMAPConfig {
     username: String,
     password: String,
+    host: Option<String>,
+    port: Option<u16>,
 }
 
 #[derive(Deserialize, Clone)]
