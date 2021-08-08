@@ -1,4 +1,4 @@
-use libjmap::rfc8620::{Account, Id, JmapSession};
+use libjmap::rfc8620::{Account, CapabilitiesObject, Id, JmapSession};
 use tide_http_auth::{BasicAuthRequest, Storage};
 
 mod config;
@@ -67,9 +67,21 @@ async fn main() -> Result<(), std::io::Error> {
 
 fn generate_session(state: &State) -> JmapSession {
     let mut session = JmapSession::default();
+    let core_capabilities = CapabilitiesObject {
+        max_size_upload: 50_000_000,
+        max_concurrent_upload: 4,
+        max_size_request: 10_000_000,
+        max_concurrent_requests: 4,
+        max_calls_in_request: 16,
+        max_objects_in_get: 500,
+        max_objects_in_set: 500,
+        collation_algorithms: Vec::default(), // TODO: properly set this list
+    };
+    session.capabilities.insert("urn:ietf:params:jmap:core".to_string(), core_capabilities);
     session
         .accounts
         .insert(state.account_id.clone(), state.account.clone());
+    // TODO: set other fields properly
     session
 }
 
