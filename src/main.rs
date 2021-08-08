@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use libjmap::rfc8620::{Account, CapabilitiesObject, Id, JmapSession};
+use libjmap::rfc8620::{Account, CapabilitiesObject, Id, JmapSession, State};
 use tide_http_auth::{BasicAuthRequest, Storage};
 
 mod config;
@@ -92,33 +92,37 @@ impl URLs {
 }
 
 fn generate_session(state: &ServerState) -> JmapSession {
-    let mut session = JmapSession::default();
-    let core_capabilities = CapabilitiesObject {
-        max_size_upload: 50_000_000,
-        max_concurrent_upload: 4,
-        max_size_request: 10_000_000,
-        max_concurrent_requests: 4,
-        max_calls_in_request: 16,
-        max_objects_in_get: 500,
-        max_objects_in_set: 500,
-        collation_algorithms: Vec::default(), // TODO: properly set this list
-    };
-    session
-        .capabilities
-        .insert("urn:ietf:params:jmap:core".to_string(), core_capabilities);
-    session
-        .accounts
-        .insert(state.account_id.clone(), state.account.clone());
-    session.username = state.config.imap.email.clone();
-
+    let mut capabilities = HashMap::new();
+    capabilities.insert(
+        "urn:ietf:params:jmap:core".to_string(),
+        CapabilitiesObject {
+            max_size_upload: 50_000_000,
+            max_concurrent_upload: 4,
+            max_size_request: 10_000_000,
+            max_concurrent_requests: 4,
+            max_calls_in_request: 16,
+            max_objects_in_get: 500,
+            max_objects_in_set: 500,
+            collation_algorithms: Vec::default(), // TODO: properly set this list
+        },
+    );
+    let mut accounts = HashMap::new();
+    accounts.insert(state.account_id.clone(), state.account.clone());
     let urls = URLs::from_address(&state.address);
-    session.api_url = Arc::new(urls.api);
-    session.download_url = Arc::new(urls.download);
-    session.upload_url = Arc::new(urls.upload);
-    session.event_source_url = Arc::new(urls.event_source);
 
     // TODO: set other fields properly
-    session
+    JmapSession {
+        capabilities,
+        accounts,
+        primary_accounts: HashMap::new(),
+        username: state.config.imap.email.clone(),
+        api_url: Arc::new(urls.api),
+        download_url: Arc::new(urls.download),
+        upload_url: Arc::new(urls.upload),
+        event_source_url: Arc::new(urls.event_source),
+        state: State::default(),
+        extra_properties: HashMap::new(),
+    }
 }
 
 async fn root(req: tide::Request<ServerState>) -> tide::Result<String> {
