@@ -20,7 +20,7 @@ trait GenerateID {
 impl GenerateID for Account {
     fn generate_id<T>() -> Id<T> {
         let id = uuid::Uuid::new_v4().to_string();
-        Id::from(String::from('A') + &id)
+        Id::from('A'.to_string() + &id)
     }
 }
 
