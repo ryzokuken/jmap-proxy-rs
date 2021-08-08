@@ -103,7 +103,9 @@ fn generate_session(state: &State) -> JmapSession {
         max_objects_in_set: 500,
         collation_algorithms: Vec::default(), // TODO: properly set this list
     };
-    session.capabilities.insert("urn:ietf:params:jmap:core".to_string(), core_capabilities);
+    session
+        .capabilities
+        .insert("urn:ietf:params:jmap:core".to_string(), core_capabilities);
     session
         .accounts
         .insert(state.account_id.clone(), state.account.clone());
