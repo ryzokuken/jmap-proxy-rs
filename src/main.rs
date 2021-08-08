@@ -8,7 +8,7 @@ mod config;
 use config::Config;
 
 #[derive(Clone)]
-struct State {
+struct ServerState {
     config: Config,
     account: Account,
     account_id: Id<Account>,
@@ -26,7 +26,7 @@ impl GenerateID for Account {
     }
 }
 
-impl State {
+impl ServerState {
     fn new(config: Config, address: String) -> Self {
         let account = Account::new(config.imap.email.clone(), true, true, None);
         let account_id = Account::generate_id();
@@ -40,7 +40,7 @@ impl State {
 }
 
 #[async_trait::async_trait]
-impl Storage<(), BasicAuthRequest> for State {
+impl Storage<(), BasicAuthRequest> for ServerState {
     async fn get_user(&self, req: BasicAuthRequest) -> tide::Result<Option<()>> {
         if req.username == self.config.jmap.username && req.password == self.config.jmap.password {
             Ok(Some(()))
@@ -58,7 +58,7 @@ async fn main() -> Result<(), std::io::Error> {
     let host = jmap_config.host.unwrap_or_else(|| "127.0.0.1".to_string());
     let port = jmap_config.port.unwrap_or_else(|| 8080);
     let addr = format!("{}:{}", host, port);
-    let mut app = tide::with_state(State::new(config, addr.clone()));
+    let mut app = tide::with_state(ServerState::new(config, addr.clone()));
     app.with(tide_http_auth::Authentication::new(
         tide_http_auth::BasicAuthScheme::default(),
     ));
@@ -91,7 +91,7 @@ impl URLs {
     }
 }
 
-fn generate_session(state: &State) -> JmapSession {
+fn generate_session(state: &ServerState) -> JmapSession {
     let mut session = JmapSession::default();
     let core_capabilities = CapabilitiesObject {
         max_size_upload: 50_000_000,
@@ -121,7 +121,7 @@ fn generate_session(state: &State) -> JmapSession {
     session
 }
 
-async fn root(req: tide::Request<State>) -> tide::Result<String> {
+async fn root(req: tide::Request<ServerState>) -> tide::Result<String> {
     let session = generate_session(req.state());
     Ok(serde_json::to_string(&session).unwrap())
 }
