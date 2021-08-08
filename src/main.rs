@@ -109,6 +109,7 @@ fn generate_session(state: &State) -> JmapSession {
     session
         .accounts
         .insert(state.account_id.clone(), state.account.clone());
+    session.username = state.config.imap.email.clone();
 
     let urls = URLs::from_address(&state.address);
     session.api_url = Arc::new(urls.api);
