@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use libjmap::rfc8620::{Account, CapabilitiesObject, Id, JmapSession};
 use tide_http_auth::{BasicAuthRequest, Storage};
 
@@ -65,6 +67,30 @@ async fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
+struct URLs {
+    api: String,
+    download: String,
+    upload: String,
+    event_source: String,
+}
+
+impl URLs {
+    fn from_address(addr: &str) -> Self {
+        Self {
+            api: format!("https://{}/api", addr),
+            download: format!(
+                "https://{}/download/{{accountId}}/{{blobId}}/{{name}}?accept={{type}}",
+                addr
+            ),
+            upload: format!("https://{}/upload/{{accountId}}/", addr),
+            event_source: format!(
+                "https://{}/eventsource?types={{types}}&closeafter={{closeafter}}&ping={{ping}}",
+                addr
+            ),
+        }
+    }
+}
+
 fn generate_session(state: &State) -> JmapSession {
     let mut session = JmapSession::default();
     let core_capabilities = CapabilitiesObject {
@@ -81,6 +107,13 @@ fn generate_session(state: &State) -> JmapSession {
     session
         .accounts
         .insert(state.account_id.clone(), state.account.clone());
+
+    let urls = URLs::from_address(&state.address);
+    session.api_url = Arc::new(urls.api);
+    session.download_url = Arc::new(urls.download);
+    session.upload_url = Arc::new(urls.upload);
+    session.event_source_url = Arc::new(urls.event_source);
+
     // TODO: set other fields properly
     session
 }
