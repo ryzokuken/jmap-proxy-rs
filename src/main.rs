@@ -91,6 +91,29 @@ impl URLs {
     }
 }
 
+trait ComputeState {
+    fn compute_state(self) -> Self;
+}
+
+impl ComputeState for JmapSession {
+    fn compute_state(self) -> Self {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(serde_json::to_string(&self.capabilities).unwrap().as_bytes());
+        hasher.update(serde_json::to_string(&self.accounts).unwrap().as_bytes());
+        hasher.update(serde_json::to_string(&self.primary_accounts).unwrap().as_bytes());
+        hasher.update(self.username.as_bytes());
+        hasher.update(self.api_url.as_bytes());
+        hasher.update(self.download_url.as_bytes());
+        hasher.update(self.upload_url.as_bytes());
+        hasher.update(self.event_source_url.as_bytes());
+        let state = State::from(hasher.finalize().to_string());
+        Self {
+            state,
+            ..self
+        }
+    }
+}
+
 fn generate_session(state: &ServerState) -> JmapSession {
     let mut capabilities = HashMap::new();
     capabilities.insert(
@@ -110,7 +133,6 @@ fn generate_session(state: &ServerState) -> JmapSession {
     accounts.insert(state.account_id.clone(), state.account.clone());
     let urls = URLs::from_address(&state.address);
 
-    // TODO: set other fields properly
     JmapSession {
         capabilities,
         accounts,
@@ -122,7 +144,7 @@ fn generate_session(state: &ServerState) -> JmapSession {
         event_source_url: Arc::new(urls.event_source),
         state: State::default(),
         extra_properties: HashMap::new(),
-    }
+    }.compute_state()
 }
 
 async fn root(req: tide::Request<ServerState>) -> tide::Result<String> {

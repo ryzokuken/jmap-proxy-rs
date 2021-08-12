@@ -10,6 +10,7 @@ libjmap = { path = "libjmap" }
 
 dirs = "3.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
+blake3 = "1.0.0"
 
 serde = "1.0"
 serde_json = "1.0"
